@@ -29,7 +29,9 @@ class TestAPI(unittest.TestCase):
         session.add_all([postA, postB])
         session.commit()
         # Go to the page and get the response from the server, store it here
-        response = self.client.get("/api/posts")
+        response = self.client.get("/api/posts",
+                                   headers=[("Accept", "application/json")]
+        )
         # Was the request to the endpoint successful?
         self.assertEqual(response.status_code, 200)
         # Did the request return a JSON object?
@@ -49,7 +51,9 @@ class TestAPI(unittest.TestCase):
     def testGetEmptyPosts(self):
         """ Getting posts from an empty database """
         # Go to the page and get the response from the server, store it here
-        response = self.client.get("/api/posts")
+        response = self.client.get("/api/posts",
+                                   headers=[("Accept", "application/json")]
+        )
         # Was the request to the endpoint successful?
         self.assertEqual(response.status_code, 200)
         # Did the request return a JSON object?
@@ -67,7 +71,9 @@ class TestAPI(unittest.TestCase):
         session.add_all([postA, postB])
         session.commit()
 
-        response = self.client.get("/api/posts/{}".format(postB.id))
+        response = self.client.get("/api/posts/{}".format(postB.id),
+                                   headers=[("Accept", "application/json")]
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.mimetype, "application/json")
@@ -78,13 +84,27 @@ class TestAPI(unittest.TestCase):
 
     def testGetNonExistentPost(self):
         """ Getting a single post which doesn't exist """
-        response = self.client.get("/api/posts/1")
+        response = self.client.get("/api/posts/1",
+                                   headers=[("Accept", "application/json")]
+        )
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.mimetype, "application/json")
 
         data = json.loads(response.data)
         self.assertEqual(data["message"], "Could not find post with id 1")
+
+    def testUnsupportedAcceptHeader(self):
+        response = self.client.get("/api/posts",
+            headers=[("Accept", "application/xml")]
+        )
+
+        self.assertEqual(response.status_code, 406)
+        self.assertEqual(response.mimetype, "application/json")
+
+        data = json.loads(response.data)
+        self.assertEqual(data["message"],
+                         "Request must accept application/json data")
 
     def tearDown(self):
         """ Test teardown """
