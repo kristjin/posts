@@ -59,6 +59,33 @@ class TestAPI(unittest.TestCase):
         # Is the JSON empty (because this tests an empty db)
         self.assertEqual(data, [])
 
+    def testGetPost(self):
+        """ Getting a single post from a populated database """
+        postA = models.Post(title="Example Post A", body="Just a test")
+        postB = models.Post(title="Example Post B", body="Still a test")
+
+        session.add_all([postA, postB])
+        session.commit()
+
+        response = self.client.get("/api/posts/{}".format(postB.id))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "application/json")
+
+        post = json.loads(response.data)
+        self.assertEqual(post["title"], "Example Post B")
+        self.assertEqual(post["body"], "Still a test")
+
+    def testGetNonExistentPost(self):
+        """ Getting a single post which doesn't exist """
+        response = self.client.get("/api/posts/1")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.mimetype, "application/json")
+
+        data = json.loads(response.data)
+        self.assertEqual(data["message"], "Could not find post with id 1")
+
     def tearDown(self):
         """ Test teardown """
         session.close()
