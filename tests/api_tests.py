@@ -20,6 +20,49 @@ class TestAPI(unittest.TestCase):
         # Set up the tables in the database
         Base.metadata.create_all(engine)
 
+    def testUpdatePost(self):
+        """ Editing a post """
+        # Create a post
+        postA = models.Post(title="Post A", body="Just a test")
+        session.add(postA)
+        session.commit()
+
+        # Create data for edit
+        data = {
+            "title": "New Titular",
+            "body": "Tits"
+        }
+        response = self.client.put("/api/posts/1",
+                                   data=json.dumps(data),
+                                   content_type="application/json",
+                                   headers=[("Accept", "application/json")],
+                                   )
+
+        # Verify request to endpoint was successful using 200 OK
+        self.assertEqual(response.status_code, 200)
+        # Verify that the response is JSON type
+        self.assertEqual(response.mimetype, "application/json")
+        # Verify the endpoint is setting the correct Location header
+        # This should be the link to the new post
+        self.assertEqual(urlparse(response.headers.get("Location")).path,
+                         "/api/posts/1")
+        # Decode the response data with json.loads
+        data = json.loads(response.data)
+        # Validate the id, title and body
+        self.assertEqual(data["id"], 1)
+        self.assertEqual(data["title"], "New Titular")
+        self.assertEqual(data["body"], "Tits")
+        # Query DB to validate status
+        posts = session.query(models.Post).all()
+        # Verify only one item in DB
+        self.assertEqual(len(posts), 1)
+        # Isolate the first post in the list received
+        post = posts[0]
+        # Validate the content of the item retrieved from the DB
+        self.assertEqual(post.title, "New Titular")
+        self.assertEqual(post.body, "Tits")
+
+
     def testInvalidData(self):
         """ Posting a post with an invalid body """
         data = {
